@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Collections.Generic;
 using Microsoft.ML;
 using Microsoft.ML.Core.Data;
 using Microsoft.ML.Data;
@@ -58,7 +59,8 @@ namespace TaxiFarePrediction
             }
 
             //TestTwoPredictions(mlContext);
-            TestRandomPrediction(mlContext);
+            ReadAndTestRandomRowFromFile(mlContext);
+            //TestRandomPrediction(mlContext);
         }
 
         public static ITransformer Train(MLContext mlContext, string dataPath)
@@ -145,6 +147,54 @@ namespace TaxiFarePrediction
             WriteLine($"**********************************************************************\n");
         }
 
+        private static void ReadAndTestRandomRowFromFile(MLContext mlContext)
+        {
+            if (File.Exists(_testDataPath))
+            {
+                using (StreamReader reader = new StreamReader(_testDataPath))
+                {
+                    string strFile = reader.ReadToEnd();
+                    Random rand = new Random();
+                    List<string> strArray = new List<string>(strFile.Split("\n"));
+                    List<string> randomTaxiTripSample = new List<string>(strArray[rand.Next(1, strArray.Count)].Split(","));
+
+                    ITransformer loadedModel;
+                    using (var stream = new FileStream(_modelPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        loadedModel = mlContext.Model.Load(stream);
+                    }
+
+                    var predictionFunction = loadedModel.CreatePredictionEngine<TaxiTrip, TaxiTripFarePrediction>(mlContext);
+                    var taxiTripSample = new TaxiTrip()
+                    {
+                        VendorId = randomTaxiTripSample[0],
+                        RateCode = randomTaxiTripSample[1],
+                        PassengerCount = float.Parse(randomTaxiTripSample[2]),
+                        TripTime = float.Parse(randomTaxiTripSample[3]),
+                        TripDistance = float.Parse(randomTaxiTripSample[4]),
+                        PaymentType = randomTaxiTripSample[5],
+                        FareAmount = float.Parse(randomTaxiTripSample[6])
+                    };
+
+                    var prediction = predictionFunction.Predict(taxiTripSample);
+
+                    WriteLine($"**********************************************************************");
+                    WriteLine($"VendorId:       {taxiTripSample.VendorId}");
+                    WriteLine($"RateCode:       {taxiTripSample.RateCode}");
+                    WriteLine($"PassengerCount: {taxiTripSample.PassengerCount}");
+                    WriteLine($"TripTime:       {taxiTripSample.TripTime}");
+                    WriteLine($"TripDistance:   {taxiTripSample.TripDistance}");
+                    WriteLine($"PaymentType:    {taxiTripSample.PaymentType}");
+                    WriteLine($"Predicted fare: {prediction.FareAmount:0.####}, actual fare: {taxiTripSample.FareAmount}");
+                    WriteLine($"**********************************************************************\n");
+                }
+            }
+            else
+            {
+                WriteLine($"{_testDataPath} not found.");
+            }
+        }
+
         private static void TestRandomPrediction(MLContext mlContext)
         {
             Random rand = new Random();
@@ -200,6 +250,9 @@ namespace TaxiFarePrediction
 
         private static void SaveModelAsFile(MLContext mlContext, ITransformer model)
         {
+            if (!Directory.Exists(Path.Combine(Environment.CurrentDirectory, "Models")))
+                Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, "Models"));
+
             using (var fileStream = new FileStream(_modelPath, FileMode.Create, FileAccess.Write, FileShare.Write))
                 mlContext.Model.Save(model, fileStream);
 
