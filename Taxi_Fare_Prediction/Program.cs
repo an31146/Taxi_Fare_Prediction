@@ -159,7 +159,7 @@ namespace TaxiFarePrediction
             //Prediction test
             // Create prediction function and make prediction.
             var predictionFunction = loadedModel.CreatePredictionEngine<TaxiTrip, TaxiTripFarePrediction>(mlContext);
-	    //
+	        //
             //Sample: 
             //vendor_id,rate_code,passenger_count,trip_time_in_secs,trip_distance,payment_type,fare_amount
             //VTS,1,1,1140,3.75,CRD,15.5
@@ -172,7 +172,7 @@ namespace TaxiFarePrediction
                 TripDistance = ((float)rand.NextDouble() * 100.0f) + 0.1f,
                 FareAmount = 0 // To predict. Actual/Observed = 15.5
             };
-	    //
+	        //
             // Pick a vendor ID
             if (rand.Next() % 2 == 0)
                 taxiTripSample.VendorId = "VTS";
@@ -187,6 +187,12 @@ namespace TaxiFarePrediction
             var prediction = predictionFunction.Predict(taxiTripSample);
 
             WriteLine($"**********************************************************************");
+            WriteLine($"VendorId:       {taxiTripSample.VendorId}");
+            WriteLine($"RateCode:       {taxiTripSample.RateCode}");
+            WriteLine($"PassengerCount: {taxiTripSample.PassengerCount}");
+            WriteLine($"TripTime:       {taxiTripSample.TripTime}");
+            WriteLine($"TripDistance:   {taxiTripSample.TripDistance}");
+            WriteLine($"PaymentType:    {taxiTripSample.PaymentType}");
             WriteLine($"Predicted fare: {prediction.FareAmount:0.####}, actual fare: 15.5");
             WriteLine($"**********************************************************************\n");
 
